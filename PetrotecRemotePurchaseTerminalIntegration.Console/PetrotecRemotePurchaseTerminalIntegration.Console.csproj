@@ -33,8 +33,31 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="log4net, Version=2.0.15.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
+      <HintPath>..\packages\log4net.2.0.15\lib\net45\log4net.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Petrotec.Lib.Json, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Petrotec.Lib.PetrotecEps.1.0.0\lib\netstandard2.0\Petrotec.Lib.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Petrotec.Lib.Payments.PosSibs, Version=1.0.0.0, Culture=neutral, processorArchitecture=x86">
+      <HintPath>..\packages\Petrotec.Lib.PetrotecEps.1.0.0\lib\netstandard2.0\Petrotec.Lib.Payments.PosSibs.dll</HintPath>
+    </Reference>
+    <Reference Include="Petrotec.Lib.PetrotecEps, Version=1.0.16.0, Culture=neutral, processorArchitecture=x86">
+      <HintPath>..\packages\Petrotec.Lib.PetrotecEps.1.0.0\lib\netstandard2.0\Petrotec.Lib.PetrotecEps.dll</HintPath>
+    </Reference>
+    <Reference Include="Petrotec.Lib.Trace, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Petrotec.Lib.PetrotecEps.1.0.0\lib\netstandard2.0\Petrotec.Lib.Trace.dll</HintPath>
+    </Reference>
+    <Reference Include="Petrotec.Lib.XmlRpc, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Petrotec.Lib.PetrotecEps.1.0.0\lib\netstandard2.0\Petrotec.Lib.XmlRpc.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -48,6 +71,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\PetrotecRemotePurchaseTerminalIntegration.Lib\PetrotecRemotePurchaseTerminalIntegration.Lib.csproj">
