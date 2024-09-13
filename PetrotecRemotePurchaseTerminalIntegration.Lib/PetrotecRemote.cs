@@ -4,6 +4,11 @@ using System.IO;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
+using Petrotec.Lib.PetrotecEps;
+using Petrotec.Lib.PetrotecEps.COM_Classes;
+using Petrotec.Lib.PetrotecEps.COM_Enums;
+using Petrotec.Lib.PetrotecEps.COM_Interfaces;
 using PetrotecRemotePurchaseTerminalIntegration.Lib.Models;
 
 namespace PetrotecRemotePurchaseTerminalIntegration.Lib
@@ -12,158 +17,253 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
     {
         #region "Constants"
 
-        private const string _infoSent = "Sent";
-        private const string _infoReceived = "Received";
+        private const string _OperationDateFormat = "yyyyMMdd";
+        private const string _OperationTimeFormat = "HHmmss";
 
-        private const string _okTerminalStatus = "INIT OK";
-        private const string _okOpenPeriod = "PERÍODO ABERTO";
-        private const string _okClosePeriod = "PERÍODO FECHADO";
-        private const string _okPurchase = "PAGAM. EFECTUADO";
-        private const string _okRefund = "DEVOL. EFECTUADA";
-
-        private const string _patternIdentTpa = @"Ident\. TPA:\s*(\d+)\s*(\d{2}-\d{2}-\d{2})\s*(\d{2}:\d{2}:\d{2})";
-        private const string _dateTimeFormat = "yy-MM-dd HH:mm:ss";
 
         #endregion
 
         #region "Members"
 
-        private readonly string serverIp;
-        private readonly int port;
+        private readonly string terminalAddress;
+        private readonly string localSystemAddress;
+        private readonly ManualResetEvent serviceResponseEventReceived = new ManualResetEvent(false);
+        private readonly ManualResetEvent cardServiceResponseEventReceived = new ManualResetEvent(false);
+        private IServiceResponse serviceResponseEventReceivedResponse;
+        private ICardServiceResponseEventArgs cardServiceResponseEventReceivedResponse;
 
         #endregion
 
         #region "Constructors"
 
-        public PetrotecRemote(string serverIp, int port)
+        public PetrotecRemote(string terminalAddress, string localSystemAddress)
         {
-            this.serverIp = serverIp;
-            this.port = port;
+            this.terminalAddress = terminalAddress;
+            this.localSystemAddress = localSystemAddress;
         }
 
         #endregion
 
         /// <summary>
-        /// Sends the command to the server.
-        /// </summary>
-        /// <param name="command">The command to send.</param>
-        public string SendCommand(string command)
-        {
-            var message = string.Empty;
-
-            using (var client = new TcpClient(serverIp, port))
-            {
-                using (var stream = client.GetStream())
-                {
-                    var hexCommand = Utilities.CalculateHexLength(command);
-                    stream.Write(hexCommand, 0, hexCommand.Length);
-                    var stringCommand = Encoding.ASCII.GetBytes(command);
-                    Console.WriteLine($"{_infoSent}: {command}");
-                    stream.Write(stringCommand, 0, stringCommand.Length);
-                    var buffer = new byte[1024];
-                    using (var ms = new MemoryStream())
-                    {
-                        int bytesRead;
-                        while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0)
-                            ms.Write(buffer, 0, bytesRead);
-                        message = Encoding.Default.GetString(ms.ToArray()).Substring(2);
-                        Console.WriteLine($"{_infoReceived}: {message}");
-                    }
-                }
-            }
-
-            return message;
-        }
-
-        /// <summary>
-        /// Terminal status.
-        /// </summary>
-        public Result TerminalStatus()
-        {
-            var message = SendCommand(new TerminalStatus().ToString());
-
-            return new Result { Success = message.Substring(9).StartsWith(_okTerminalStatus), Message = message };
-        }
-
-        /// <summary>
         /// Opens the period.
         /// </summary>
-        /// <param name="transactionId">The transaction identifier.</param>
-        public Result OpenPeriod(string transactionId)
+        public Result OpenPeriod()
         {
-            var message = SendCommand(new OpenPeriod { TransactionId = transactionId }.ToString());
+            var success = true;
+            var message = string.Empty;
 
-            return new Result { Success = message.Substring(10).StartsWith(_okOpenPeriod), Message = message };
+            try
+            {
+                using (var _clientEPS = new EpsClient())
+                {
+                    _clientEPS.OnServiceResponse += _clientEPS_OnServiceResponse;
+
+                    _clientEPS.Initialize(new ConnectionConfiguration
+                    {
+                        TerminalAddress = terminalAddress,
+                        LocalSystemAddress = localSystemAddress,
+                    });
+
+                    var requestStartInfo = _clientEPS.ExecuteServiceRequest(new ServiceRequest { RequestType = ServiceRequestType.SIBSOpenAccountingPeriod }, 120);
+
+                    if (requestStartInfo.ErrorCode != 0)
+                    {
+                        success = false;
+                        message = $"ErrorCode: {requestStartInfo.ErrorCode}. ErrorMessage: {requestStartInfo.ErrorMessage}. RequestID: {requestStartInfo.RequestId}.";
+                    }
+                    else
+                    {
+                        WaitForEvent(serviceResponseEventReceived);
+                        success = serviceResponseEventReceivedResponse.ErrorCode == 0;
+                        message = serviceResponseEventReceivedResponse.ToString();
+                    }
+
+                    _clientEPS.Terminate();
+                }
+            }
+            catch (Exception ex)
+            {
+                success = false;
+                message = ex.Message;
+            }
+
+            return new Result { Success = success, Message = message };
         }
 
         /// <summary>
         /// Closes the period.
         /// </summary>
-        /// <param name="transactionId">The transaction identifier.</param>
-        public Result ClosePeriod(string transactionId)
+        public Result ClosePeriod()
         {
-            var message = SendCommand(new ClosePeriod { TransactionId = transactionId }.ToString());
+            var success = true;
+            var message = string.Empty;
 
-            return new Result { Success = message.Substring(9).StartsWith(_okClosePeriod), Message = message };
+            try
+            {
+                using (var _clientEPS = new EpsClient())
+                {
+                    _clientEPS.OnServiceResponse += _clientEPS_OnServiceResponse;
+
+                    _clientEPS.Initialize(new ConnectionConfiguration
+                    {
+                        TerminalAddress = terminalAddress,
+                        LocalSystemAddress = localSystemAddress,
+                    });
+
+                    var requestStartInfo = _clientEPS.ExecuteServiceRequest(new ServiceRequest { RequestType = ServiceRequestType.SIBSCloseAccountingPeriod }, 120);
+
+                    if (requestStartInfo.ErrorCode != 0)
+                    {
+                        success = false;
+                        message = $"ErrorCode: {requestStartInfo.ErrorCode}. ErrorMessage: {requestStartInfo.ErrorMessage}. RequestID: {requestStartInfo.RequestId}.";
+                    }
+                    else
+                    {
+                        WaitForEvent(serviceResponseEventReceived);
+                        success = serviceResponseEventReceivedResponse.ErrorCode == 0;
+                        message = serviceResponseEventReceivedResponse.ToString();
+                    }
+
+                    _clientEPS.Terminate();
+                }
+            }
+            catch (Exception ex)
+            {
+                success = false;
+                message = ex.Message;
+            }
+
+            return new Result { Success = success, Message = message };
         }
 
         /// <summary>
         /// Purchases the specified transaction identifier and amount.
         /// </summary>
-        /// <param name="transactionId">The transaction identifier.</param>
         /// <param name="amount">The amount.</param>
-        public Result Purchase(string transactionId, string amount)
+        /// <param name="printLocal">Print local.</param>
+        public Result Purchase(string amount, bool printLocal)
         {
-            var purchaseResult = new PurchaseResult();
-            var message  = SendCommand(new Purchase { TransactionId = transactionId, Amount = amount }.ToString());
+            var success = true;
+            var message = string.Empty;
 
-            if (message.Substring(9).StartsWith(_okPurchase))
-            {                
-                purchaseResult.TransactionId = transactionId;
-                purchaseResult.Amount = amount;
-
-                // Match Ident. TPA for terminal ID, date, and time:
-                var matchIdentTpa = Regex.Match(message, _patternIdentTpa);
-                if (matchIdentTpa.Success)
+            try
+            {
+                using (var _clientEPS = new EpsClient())
                 {
-                    purchaseResult.OriginalPosIdentification = matchIdentTpa.Groups[1].Value;
+                    _clientEPS.OnCardServiceResponse += _clientEPS_OnCardServiceResponse;
 
-                    DateTime.TryParseExact(
-                        matchIdentTpa.Groups[2].Value + " " + matchIdentTpa.Groups[3].Value,
-                        _dateTimeFormat,
-                        CultureInfo.InvariantCulture,
-                        DateTimeStyles.None,
-                        out DateTime originalReceiptData
-                    );
+                    _clientEPS.Initialize(new ConnectionConfiguration
+                    {
+                        TerminalAddress = terminalAddress,
+                        LocalSystemAddress = localSystemAddress,
+                    });
 
-                    purchaseResult.OriginalReceiptData = originalReceiptData;
-                    purchaseResult.ReceiptData = message.Substring(29);
+                    var requestStartInfo = _clientEPS.CardServiceRequestSIBSPurchase(new PurchaseData
+                    {
+                        PrintLocal = printLocal,
+                        TotalAmount = new TotalAmount
+                        {
+                            Value = Convert.ToDecimal(amount, CultureInfo.InvariantCulture)
+                        }
+                    }, 120);
+
+                    if (requestStartInfo.ErrorCode != 0)
+                    {
+                        success = false;
+                        message = $"ErrorCode: {requestStartInfo.ErrorCode}. ErrorMessage: {requestStartInfo.ErrorMessage}. RequestID: {requestStartInfo.RequestId}.";
+                    }
+                    else
+                    {
+                        WaitForEvent(cardServiceResponseEventReceived);
+                        success = cardServiceResponseEventReceivedResponse.ErrorCode == 0;
+                        message = cardServiceResponseEventReceivedResponse.ToString();
+                    }
+
+                    _clientEPS.Terminate();
                 }
             }
+            catch (Exception ex)
+            {
+                success = false;
+                message = ex.Message;
+            }
 
-            return new Result {
-                Success = message.Substring(9).StartsWith(_okPurchase),
-                Message = message,
-                ExtraData = purchaseResult
-            };
+            return new Result { Success = success, Message = message };
         }
 
         /// <summary>
         /// The refund.
         /// </summary>
-        /// <param name="transactionId">The transaction identifier.</param>
         /// <param name="amount">The amount.</param>
-        public Result Refund(PurchaseResult purchaseResult)
+        public Result Refund(string amount, string posId, DateTime operationDate, DateTime operationTime)
         {
-            var message = SendCommand(new Refund {
-                TransactionId = purchaseResult.TransactionId,
-                Amount = purchaseResult.Amount,
-                OriginalPosIdentification = purchaseResult.OriginalPosIdentification,
-                OriginalReceiptData = purchaseResult.OriginalReceiptData,
-                OriginalReceiptTime = purchaseResult.OriginalReceiptData
-            }.ToString());
+            var success = true;
+            var message = string.Empty;
 
-            return new Result { Success = message.Substring(9).StartsWith(_okRefund), Message = message };
+            try
+            {
+                using (var _clientEPS = new EpsClient())
+                {
+                    _clientEPS.OnCardServiceResponse += _clientEPS_OnCardServiceResponse;
+
+                    _clientEPS.Initialize(new ConnectionConfiguration
+                    {
+                        TerminalAddress = terminalAddress,
+                        LocalSystemAddress = localSystemAddress,
+                    });
+
+                    var requestStartInfo = _clientEPS.CardServiceRequestSIBSRefund(new RefundData
+                    {
+                        Amount = Convert.ToDecimal(amount, CultureInfo.InvariantCulture),
+                        PosId = posId,
+                        OperationDate = operationDate.ToString(_OperationDateFormat),
+                        OperationTime = operationTime.ToString(_OperationTimeFormat)
+                    }, 120);
+
+                    if (requestStartInfo.ErrorCode != 0)
+                    {
+                        success = false;
+                        message = $"ErrorCode: {requestStartInfo.ErrorCode}. ErrorMessage: {requestStartInfo.ErrorMessage}. RequestID: {requestStartInfo.RequestId}.";
+                    }
+                    else
+                    {
+                        WaitForEvent(cardServiceResponseEventReceived);
+                        success = cardServiceResponseEventReceivedResponse.ErrorCode == 0;
+                        message = cardServiceResponseEventReceivedResponse.ToString();
+                    }
+
+                    _clientEPS.Terminate();
+                }
+            }
+            catch (Exception ex)
+            {
+                success = false;
+                message = ex.Message;
+            }
+
+            return new Result { Success = success, Message = message };
+        }
+
+        private void _clientEPS_OnServiceResponse(IServiceResponse args)
+        {
+            serviceResponseEventReceivedResponse = args;
+            serviceResponseEventReceived.Set();
+        }
+
+        private void _clientEPS_OnCardServiceResponse(ICardServiceResponseEventArgs args)
+        {
+            cardServiceResponseEventReceivedResponse = args;
+            cardServiceResponseEventReceived.Set();
+        }
+
+        /// <summary>
+        /// Event wait handler
+        /// </summary>
+        /// <param name="eventHandle">The event handle</param>
+        private void WaitForEvent(ManualResetEvent eventHandle)
+        {
+            eventHandle.WaitOne();
+            eventHandle.Reset();
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net.Sockets;
 using PetrotecRemotePurchaseTerminalIntegration.Lib;
+using PetrotecRemotePurchaseTerminalIntegration.Lib.Models;
 using static PetrotecRemotePurchaseTerminalIntegration.Lib.Enums;
 
 namespace PetrotecRemotePurchaseTerminalIntegration.Console
@@ -18,19 +19,19 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Console
 
         #region "Home"
 
-        private static readonly string serverIp = "192.168.1.252";
-        private static readonly int port = 15200;
+        private static readonly string terminalAddress = "http://192.168.40.167:45000";
+        private static readonly string localSystemAddress = "http://192.168.40.126:45000";
 
         #endregion
 
         #region "Office"
 
-        //private static readonly string serverIp = "195.138.11.17";
-        //private static readonly int port = 10301;
+        //private static readonly string terminalAddress = "http://192.168.40.167:45000";
+        //private static readonly string localSystemAddress = "http://192.168.40.126:45000";
 
         #endregion
 
-        private static readonly PetrotecRemote newNoteSPRemote = new PetrotecRemote(serverIp, port);
+        private static readonly PetrotecRemote petrotecRemote = new PetrotecRemote(terminalAddress, localSystemAddress);
 
         #endregion
 
@@ -65,23 +66,22 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Console
 
                 if (int.TryParse(input, out int commandValue) && Enum.IsDefined(typeof(TerminalCommandOptions), commandValue))
                 {
+                    Result result = null;
                     var command = (TerminalCommandOptions)commandValue;
+
                     switch (command)
                     {
-                        case TerminalCommandOptions.SendTerminalStatusRequest:
-                            newNoteSPRemote.TerminalStatus();
-                            break;
                         case TerminalCommandOptions.SendTerminalOpenPeriod:
-                            newNoteSPRemote.OpenPeriod("0001");
+                            result = petrotecRemote.OpenPeriod();
                             break;
                         case TerminalCommandOptions.SendTerminalClosePeriod:
-                            newNoteSPRemote.ClosePeriod("0001");
+                            result = petrotecRemote.ClosePeriod();
                             break;
                         case TerminalCommandOptions.SendProcessPaymentRequest:
-                            newNoteSPRemote.Purchase("0001", "00000009");
+                            result = petrotecRemote.Purchase("0.09", false);
                             break;
                         case TerminalCommandOptions.SendProcessRefundRequest:
-                            newNoteSPRemote.Refund(new Lib.Models.PurchaseResult());
+                            result = petrotecRemote.Refund("0.09", "00069085", DateTime.Now, DateTime.Now);
                             break;
                         case TerminalCommandOptions.ShowListOfCommands:
                             ShowListOfCommands();
@@ -90,6 +90,8 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Console
                             serverIsRunning = false;
                             break;
                     }
+
+                    System.Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(result));
                 }
                 else
                 {
