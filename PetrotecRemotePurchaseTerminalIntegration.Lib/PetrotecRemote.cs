@@ -2,9 +2,11 @@
 using System.Globalization;
 using System.IO;
 using System.Net.Sockets;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Transactions;
 using Petrotec.Lib.PetrotecEps;
 using Petrotec.Lib.PetrotecEps.COM_Classes;
 using Petrotec.Lib.PetrotecEps.COM_Enums;
@@ -17,9 +19,13 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
     {
         #region "Constants"
 
+        private const int _okStatus = 0;
+
         private const string _OperationDateFormat = "yyyyMMdd";
         private const string _OperationTimeFormat = "HHmmss";
 
+        private const string _patternIdentTpa = @"Ident\. TPA:\s*(\d+)\s*(\d{2}-\d{2}-\d{2})\s*(\d{2}:\d{2}:\d{2})";
+        private const string _dateTimeFormat = "yy-MM-dd HH:mm:ss";
 
         #endregion
 
@@ -74,7 +80,7 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
                     else
                     {
                         WaitForEvent(serviceResponseEventReceived);
-                        success = serviceResponseEventReceivedResponse.ErrorCode == 0;
+                        success = serviceResponseEventReceivedResponse.ErrorCode == _okStatus;
                         message = serviceResponseEventReceivedResponse.ToString();
                     }
 
@@ -120,7 +126,7 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
                     else
                     {
                         WaitForEvent(serviceResponseEventReceived);
-                        success = serviceResponseEventReceivedResponse.ErrorCode == 0;
+                        success = serviceResponseEventReceivedResponse.ErrorCode == _okStatus;
                         message = serviceResponseEventReceivedResponse.ToString();
                     }
 
@@ -145,6 +151,7 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
         {
             var success = true;
             var message = string.Empty;
+            var purchaseResult = new PurchaseResult();
 
             try
             {
@@ -175,7 +182,38 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
                     else
                     {
                         WaitForEvent(cardServiceResponseEventReceived);
-                        success = cardServiceResponseEventReceivedResponse.ErrorCode == 0;
+
+                        if (cardServiceResponseEventReceivedResponse.ErrorCode == _okStatus)
+                        {
+                            purchaseResult.TransactionId = cardServiceResponseEventReceivedResponse.FepTransactionData.TerminalId;
+                            purchaseResult.Amount = Convert.ToDecimal(amount, CultureInfo.InvariantCulture);
+
+                            // Match Ident. TPA for terminal ID, date, and time:
+                            var matchIdentTpa = Regex.Match(cardServiceResponseEventReceivedResponse.FepTransactionData.TextForClientReceipt, _patternIdentTpa);
+                            if (matchIdentTpa.Success)
+                            {
+                                purchaseResult.OriginalPosIdentification = matchIdentTpa.Groups[1].Value;
+
+                                DateTime.TryParseExact(
+                                    matchIdentTpa.Groups[2].Value + " " + matchIdentTpa.Groups[3].Value,
+                                    _dateTimeFormat,
+                                    CultureInfo.InvariantCulture,
+                                    DateTimeStyles.None,
+                                    out DateTime originalReceiptDataParsed
+                                );
+
+                                purchaseResult.OriginalReceiptData = originalReceiptDataParsed;
+                                purchaseResult.ReceiptData = cardServiceResponseEventReceivedResponse.FepTransactionData.TextForClientReceipt.Substring(29);
+                            }
+                            else
+                            {
+                                // Receipt is being printed on the terminal
+                                //purchaseResult.OriginalPosIdentification = originalPosIdentification;
+                                //purchaseResult.OriginalReceiptData = originalReceiptData;
+                            }
+                        }
+
+                        success = cardServiceResponseEventReceivedResponse.ErrorCode == _okStatus;
                         message = cardServiceResponseEventReceivedResponse.ToString();
                     }
 
@@ -188,14 +226,14 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
                 message = ex.Message;
             }
 
-            return new Result { Success = success, Message = message };
+            return new Result { Success = success, Message = message, ExtraData = purchaseResult };
         }
 
         /// <summary>
         /// The refund.
         /// </summary>
         /// <param name="amount">The amount.</param>
-        public Result Refund(string amount, string posId, DateTime operationDate, DateTime operationTime)
+        public Result Refund(PurchaseResult purchaseResult)
         {
             var success = true;
             var message = string.Empty;
@@ -214,10 +252,10 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
 
                     var requestStartInfo = _clientEPS.CardServiceRequestSIBSRefund(new RefundData
                     {
-                        Amount = Convert.ToDecimal(amount, CultureInfo.InvariantCulture),
-                        PosId = posId,
-                        OperationDate = operationDate.ToString(_OperationDateFormat),
-                        OperationTime = operationTime.ToString(_OperationTimeFormat)
+                        Amount = Convert.ToDecimal(purchaseResult.Amount, CultureInfo.InvariantCulture),
+                        PosId = purchaseResult.OriginalPosIdentification,
+                        OperationDate = purchaseResult.OriginalReceiptData.ToString(_OperationDateFormat),
+                        OperationTime = purchaseResult.OriginalReceiptData.ToString(_OperationTimeFormat)
                     }, 120);
 
                     if (requestStartInfo.ErrorCode != 0)
@@ -228,7 +266,8 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
                     else
                     {
                         WaitForEvent(cardServiceResponseEventReceived);
-                        success = cardServiceResponseEventReceivedResponse.ErrorCode == 0;
+
+                        success = cardServiceResponseEventReceivedResponse.ErrorCode == _okStatus;
                         message = cardServiceResponseEventReceivedResponse.ToString();
                     }
 
@@ -253,6 +292,7 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
         private void _clientEPS_OnCardServiceResponse(ICardServiceResponseEventArgs args)
         {
             cardServiceResponseEventReceivedResponse = args;
+
             cardServiceResponseEventReceived.Set();
         }
 
@@ -260,7 +300,7 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
         /// Event wait handler
         /// </summary>
         /// <param name="eventHandle">The event handle</param>
-        private void WaitForEvent(ManualResetEvent eventHandle)
+        private static void WaitForEvent(ManualResetEvent eventHandle)
         {
             eventHandle.WaitOne();
             eventHandle.Reset();
