@@ -5,22 +5,32 @@ VisualStudioVersion = 17.9.34902.65
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PetrotecRemotePurchaseTerminalIntegration.Console", "PetrotecRemotePurchaseTerminalIntegration.Console\PetrotecRemotePurchaseTerminalIntegration.Console.csproj", "{8218D8FE-02CA-4753-963F-5467B10264F6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PetrotecRemotePurchaseTerminalIntegration.Lib", "PetrotecRemotePurchaseTerminalIntegration.Lib\PetrotecRemotePurchaseTerminalIntegration.Lib.csproj", "{7768A60A-2366-4AA6-98C5-5B3C2DBD8C4C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PetrotecRemotePurchaseTerminalIntegration.Lib", "PetrotecRemotePurchaseTerminalIntegration.Lib\PetrotecRemotePurchaseTerminalIntegration.Lib.csproj", "{7768A60A-2366-4AA6-98C5-5B3C2DBD8C4C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Debug|x86 = Debug|x86
 		Release|Any CPU = Release|Any CPU
+		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{8218D8FE-02CA-4753-963F-5467B10264F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{8218D8FE-02CA-4753-963F-5467B10264F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8218D8FE-02CA-4753-963F-5467B10264F6}.Debug|x86.ActiveCfg = Debug|x86
+		{8218D8FE-02CA-4753-963F-5467B10264F6}.Debug|x86.Build.0 = Debug|x86
 		{8218D8FE-02CA-4753-963F-5467B10264F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8218D8FE-02CA-4753-963F-5467B10264F6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8218D8FE-02CA-4753-963F-5467B10264F6}.Release|x86.ActiveCfg = Release|x86
+		{8218D8FE-02CA-4753-963F-5467B10264F6}.Release|x86.Build.0 = Release|x86
 		{7768A60A-2366-4AA6-98C5-5B3C2DBD8C4C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{7768A60A-2366-4AA6-98C5-5B3C2DBD8C4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7768A60A-2366-4AA6-98C5-5B3C2DBD8C4C}.Debug|x86.ActiveCfg = Debug|x86
+		{7768A60A-2366-4AA6-98C5-5B3C2DBD8C4C}.Debug|x86.Build.0 = Debug|x86
 		{7768A60A-2366-4AA6-98C5-5B3C2DBD8C4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7768A60A-2366-4AA6-98C5-5B3C2DBD8C4C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7768A60A-2366-4AA6-98C5-5B3C2DBD8C4C}.Release|x86.ActiveCfg = Release|x86
+		{7768A60A-2366-4AA6-98C5-5B3C2DBD8C4C}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

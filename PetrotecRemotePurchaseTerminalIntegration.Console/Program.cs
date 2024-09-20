@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net.Sockets;
+using Newtonsoft.Json;
 using PetrotecRemotePurchaseTerminalIntegration.Lib;
 using PetrotecRemotePurchaseTerminalIntegration.Lib.Models;
 using static PetrotecRemotePurchaseTerminalIntegration.Lib.Enums;
@@ -58,6 +59,7 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Console
         private static void ListenForUserInput()
         {
             var serverIsRunning = true;
+            string purchaseResult = null;
 
             while (serverIsRunning)
             {
@@ -78,10 +80,13 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Console
                             result = petrotecRemote.ClosePeriod();
                             break;
                         case TerminalCommandOptions.SendProcessPaymentRequest:
-                            result = petrotecRemote.Purchase("0.09", false);
+                            result = petrotecRemote.Purchase(Math.Round(new Random().NextDouble() * (1.99 - 0.01) + 0.01, 2).ToString("0.00"), false);
+
+                            if (result.Success)
+                                purchaseResult = JsonConvert.SerializeObject(result.ExtraData);
                             break;
                         case TerminalCommandOptions.SendProcessRefundRequest:
-                            result = petrotecRemote.Refund("0.09", "00069085", DateTime.Now, DateTime.Now);
+                            result = petrotecRemote.Refund(JsonConvert.DeserializeObject<PurchaseResult>(purchaseResult));
                             break;
                         case TerminalCommandOptions.ShowListOfCommands:
                             ShowListOfCommands();
