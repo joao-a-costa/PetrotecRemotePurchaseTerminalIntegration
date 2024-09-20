@@ -40,6 +40,15 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
 
         #endregion
 
+        #region "Events"
+
+        /// <summary>
+        /// Define an event to be raised when a message is sent
+        /// </summary>
+        public event EventHandler<string> MessageSent;
+
+        #endregion
+
         #region "Constructors"
 
         public PetrotecRemote(string terminalAddress, string localSystemAddress)
@@ -49,6 +58,52 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
         }
 
         #endregion
+
+        /// <summary>
+        /// Terminal status.
+        /// </summary>
+        public Result TerminalStatus()
+        {
+            var success = true;
+            var message = string.Empty;
+
+            try
+            {
+                using (var _clientEPS = new EpsClient())
+                {
+                    _clientEPS.OnServiceResponse += _clientEPS_OnServiceResponse;
+
+                    _clientEPS.Initialize(new ConnectionConfiguration
+                    {
+                        TerminalAddress = terminalAddress,
+                        LocalSystemAddress = localSystemAddress,
+                    });
+
+                    var requestStartInfo = _clientEPS.ExecuteServiceRequest(new ServiceRequest { RequestType = ServiceRequestType.None }, 120);
+
+                    if (requestStartInfo.ErrorCode != 0)
+                    {
+                        success = false;
+                        message = $"ErrorCode: {requestStartInfo.ErrorCode}. ErrorMessage: {requestStartInfo.ErrorMessage}. RequestID: {requestStartInfo.RequestId}.";
+                    }
+                    else
+                    {
+                        WaitForEvent(serviceResponseEventReceived);
+                        success = serviceResponseEventReceivedResponse.ErrorCode == _okStatus;
+                        message = serviceResponseEventReceivedResponse.ToString();
+                    }
+
+                    _clientEPS.Terminate();
+                }
+            }
+            catch (Exception ex)
+            {
+                success = false;
+                message = ex.Message;
+            }
+
+            return new Result { Success = success, Message = message };
+        }
 
         /// <summary>
         /// Opens the period.
