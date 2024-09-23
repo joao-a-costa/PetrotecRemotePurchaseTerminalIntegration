@@ -79,20 +79,6 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
                         LocalSystemAddress = localSystemAddress,
                     });
 
-                    var requestStartInfo = _clientEPS.ExecuteServiceRequest(new ServiceRequest { RequestType = ServiceRequestType.None }, 120);
-
-                    if (requestStartInfo.ErrorCode != 0)
-                    {
-                        success = false;
-                        message = $"ErrorCode: {requestStartInfo.ErrorCode}. ErrorMessage: {requestStartInfo.ErrorMessage}. RequestID: {requestStartInfo.RequestId}.";
-                    }
-                    else
-                    {
-                        WaitForEvent(serviceResponseEventReceived);
-                        success = serviceResponseEventReceivedResponse.ErrorCode == _okStatus;
-                        message = serviceResponseEventReceivedResponse.ToString();
-                    }
-
                     _clientEPS.Terminate();
                 }
             }
@@ -136,7 +122,7 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
                     {
                         WaitForEvent(serviceResponseEventReceived);
                         success = serviceResponseEventReceivedResponse.ErrorCode == _okStatus;
-                        message = serviceResponseEventReceivedResponse.ToString();
+                        message = serviceResponseEventReceivedResponse.ErrorMessage;
                     }
 
                     _clientEPS.Terminate();
@@ -182,7 +168,7 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
                     {
                         WaitForEvent(serviceResponseEventReceived);
                         success = serviceResponseEventReceivedResponse.ErrorCode == _okStatus;
-                        message = serviceResponseEventReceivedResponse.ToString();
+                        message = serviceResponseEventReceivedResponse.ErrorMessage;
                     }
 
                     _clientEPS.Terminate();
@@ -269,7 +255,7 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
                         }
 
                         success = cardServiceResponseEventReceivedResponse.ErrorCode == _okStatus;
-                        message = cardServiceResponseEventReceivedResponse.ToString();
+                        message = cardServiceResponseEventReceivedResponse.ErrorMessage;
                     }
 
                     _clientEPS.Terminate();
@@ -323,7 +309,7 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
                         WaitForEvent(cardServiceResponseEventReceived);
 
                         success = cardServiceResponseEventReceivedResponse.ErrorCode == _okStatus;
-                        message = cardServiceResponseEventReceivedResponse.ToString();
+                        message = cardServiceResponseEventReceivedResponse.ErrorMessage;
                     }
 
                     _clientEPS.Terminate();
