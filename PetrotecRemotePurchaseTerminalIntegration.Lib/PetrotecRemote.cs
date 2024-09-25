@@ -40,6 +40,15 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
 
         #endregion
 
+        #region "Events"
+
+        /// <summary>
+        /// Define an event to be raised when a message is sent
+        /// </summary>
+        public event EventHandler<string> MessageSent;
+
+        #endregion
+
         #region "Constructors"
 
         public PetrotecRemote(string terminalAddress, string localSystemAddress)
