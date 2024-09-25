@@ -18,19 +18,8 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Console
 
         #region "Members"
 
-        #region "Home"
-
         private static readonly string terminalAddress = "http://192.168.40.167:45000";
         private static readonly string localSystemAddress = "http://192.168.40.126:45000";
-
-        #endregion
-
-        #region "Office"
-
-        //private static readonly string terminalAddress = "http://192.168.40.167:45000";
-        //private static readonly string localSystemAddress = "http://192.168.40.126:45000";
-
-        #endregion
 
         private static readonly PetrotecRemote petrotecRemote = new PetrotecRemote(terminalAddress, localSystemAddress);
 
@@ -73,6 +62,9 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Console
 
                     switch (command)
                     {
+                        case TerminalCommandOptions.SendTerminalStatus:
+                            result = petrotecRemote.TerminalStatus();
+                            break;
                         case TerminalCommandOptions.SendTerminalOpenPeriod:
                             result = petrotecRemote.OpenPeriod();
                             break;

@@ -40,15 +40,6 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
 
         #endregion
 
-        #region "Events"
-
-        /// <summary>
-        /// Define an event to be raised when a message is sent
-        /// </summary>
-        public event EventHandler<string> MessageSent;
-
-        #endregion
-
         #region "Constructors"
 
         public PetrotecRemote(string terminalAddress, string localSystemAddress)
@@ -78,6 +69,20 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
                         TerminalAddress = terminalAddress,
                         LocalSystemAddress = localSystemAddress,
                     });
+
+                    var requestStartInfo = _clientEPS.ExecuteServiceRequest(new ServiceRequest { RequestType = ServiceRequestType.SIBSCheckPeriodState }, 120);
+
+                    if (requestStartInfo.ErrorCode != 0)
+                    {
+                        success = false;
+                        message = $"ErrorCode: {requestStartInfo.ErrorCode}. ErrorMessage: {requestStartInfo.ErrorMessage}. RequestID: {requestStartInfo.RequestId}.";
+                    }
+                    else
+                    {
+                        WaitForEvent(serviceResponseEventReceived);
+                        success = serviceResponseEventReceivedResponse.ErrorCode == _okStatus;
+                        message = serviceResponseEventReceivedResponse.ErrorMessage;
+                    }
 
                     _clientEPS.Terminate();
                 }
