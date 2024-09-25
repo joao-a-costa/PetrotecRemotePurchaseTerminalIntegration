@@ -225,7 +225,7 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
                         PrintLocal = printLocal,
                         TotalAmount = new TotalAmount
                         {
-                            Value = Convert.ToDecimal(amount, CultureInfo.InvariantCulture)
+                            Value = Convert.ToDecimal(amount.Replace(",", "."), CultureInfo.InvariantCulture)
                         }
                     }, 120);
 
