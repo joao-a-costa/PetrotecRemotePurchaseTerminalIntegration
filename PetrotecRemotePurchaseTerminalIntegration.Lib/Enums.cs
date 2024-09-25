@@ -6,14 +6,16 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
     {
         public enum TerminalCommandOptions
         {
+            [Description("Send terminal status request")]
+            SendTerminalStatus = 1,
             [Description("Send terminal open period request")]
-            SendTerminalOpenPeriod = 1,
+            SendTerminalOpenPeriod = 2,
             [Description("Send terminal close period request")]
-            SendTerminalClosePeriod = 2,
+            SendTerminalClosePeriod = 3,
             [Description("Send terminal purchase request")]
-            SendProcessPaymentRequest = 3,
+            SendProcessPaymentRequest = 4,
             [Description("Send terminal refund request")]
-            SendProcessRefundRequest = 4,
+            SendProcessRefundRequest = 5,
             [Description("Show list of commands")]
             ShowListOfCommands = 9998,
             [Description("Stop listening")]
