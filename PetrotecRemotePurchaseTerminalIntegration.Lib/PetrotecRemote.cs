@@ -258,7 +258,10 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
                                 );
 
                                 purchaseResult.OriginalReceiptData = originalReceiptDataParsed;
-                                purchaseResult.ReceiptData = cardServiceResponseEventReceivedResponse.FepTransactionData.TextForClientReceipt.Substring(29);
+
+                                var fepTransactionData = cardServiceResponseEventReceivedResponse.FepTransactionData;
+                                purchaseResult.ReceiptData.MerchantCopy = fepTransactionData.TextForMerchantReceipt.Substring(29);
+                                purchaseResult.ReceiptData.ClientCopy = fepTransactionData.TextForClientReceipt.Substring(29);
                             }
                             else
                             {
