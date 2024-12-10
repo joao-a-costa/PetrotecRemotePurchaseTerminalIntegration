@@ -1,12 +1,7 @@
 ﻿using System;
-using System.Globalization;
-using System.IO;
-using System.Net.Sockets;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
-using System.Transactions;
+using System.Globalization;
+using System.Text.RegularExpressions;
 using Petrotec.Lib.PetrotecEps;
 using Petrotec.Lib.PetrotecEps.COM_Classes;
 using Petrotec.Lib.PetrotecEps.COM_Enums;
@@ -112,6 +107,7 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
         {
             var success = true;
             var message = string.Empty;
+            var purchaseResult = new PurchaseResult();
 
             try
             {
@@ -135,8 +131,12 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
                     else
                     {
                         WaitForEvent(serviceResponseEventReceived);
-                        success = serviceResponseEventReceivedResponse.ErrorCode == _okStatus;
-                        message = serviceResponseEventReceivedResponse.ErrorMessage;
+
+                        if (serviceResponseEventReceivedResponse?.ErrorCode == _okStatus)
+                            purchaseResult.ReceiptData.MerchantCopy = serviceResponseEventReceivedResponse?.OpenAccountingPeriodData?.Receipt;
+
+                        success = serviceResponseEventReceivedResponse?.ErrorCode == _okStatus;
+                        message = serviceResponseEventReceivedResponse?.ErrorMessage;
                     }
 
                     _clientEPS.Terminate();
@@ -148,7 +148,7 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
                 message = ex.Message;
             }
 
-            return new Result { Success = success, Message = message };
+            return new Result { Success = success, Message = message, ExtraData = purchaseResult };
         }
 
         /// <summary>
@@ -158,6 +158,7 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
         {
             var success = true;
             var message = string.Empty;
+            var purchaseResult = new PurchaseResult();
 
             try
             {
@@ -181,8 +182,12 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
                     else
                     {
                         WaitForEvent(serviceResponseEventReceived);
-                        success = serviceResponseEventReceivedResponse.ErrorCode == _okStatus;
-                        message = serviceResponseEventReceivedResponse.ErrorMessage;
+
+                        if (serviceResponseEventReceivedResponse?.ErrorCode == _okStatus)
+                            purchaseResult.ReceiptData.MerchantCopy = serviceResponseEventReceivedResponse?.CloseAccountingPeriodData?.Receipt;
+
+                        success = serviceResponseEventReceivedResponse?.ErrorCode == _okStatus;
+                        message = serviceResponseEventReceivedResponse?.ErrorMessage;
                     }
 
                     _clientEPS.Terminate();
@@ -194,7 +199,7 @@ namespace PetrotecRemotePurchaseTerminalIntegration.Lib
                 message = ex.Message;
             }
 
-            return new Result { Success = success, Message = message };
+            return new Result { Success = success, Message = message, ExtraData = purchaseResult };
         }
 
         /// <summary>
